@@ -21,7 +21,7 @@ class SnakeGame:
         self.score = 0
         self.game_over = False
         self.model_name = model_name
-        # 定义颜色方案
+        # define color scheme
         self.colors = {
             'border': Fore.BLUE,
             'snake_head': Fore.GREEN,
@@ -67,7 +67,7 @@ class SnakeGame:
             print(f"{Fore.RED}Game Over! Final Score: {self.score}{Style.RESET_ALL}")
     
     def step(self, direction):
-        """执行一步移动"""
+        """execute one move""""
         if self.game_over:
             return
             
@@ -76,7 +76,7 @@ class SnakeGame:
             direction == 'DOWN' and self.direction == 'UP' or
             direction == 'LEFT' and self.direction == 'RIGHT' or
             direction == 'RIGHT' and self.direction == 'LEFT'):
-            # 如果是无效的反向移动，保持原方向
+            # if invalid reverse move, keep current direction
             direction = self.direction
             
         self.direction = direction
@@ -114,20 +114,20 @@ class SnakeGame:
             self.snake.pop()
 
 class AIPlayer(ABC):
-    """AI玩家基类"""
+    """AI player base class"""
     @abstractmethod
     def get_move(self, game):
         pass
     
     def _format_board(self, game):
-        """格式化游戏板状态"""
+        """format game board state"""
         board = [["" for _ in range(game.width)] for _ in range(game.height)]
         
-        # 标记蛇的位置
+        # mark snake position
         for i, (x, y) in enumerate(game.snake):
             board[y][x] = "H" if i == 0 else "B"  # H for head, B for body
         
-        # 标记食物位置
+        # mark food position
         x, y = game.food
         board[y][x] = "F"
         
@@ -215,7 +215,7 @@ Strict Requirement: Respond with only one direction word (UP/DOWN/LEFT/RIGHT), n
             
         head_x, head_y = game.snake[0]
         
-        # 计算新的头部位置
+        # calculate new head position
         if move == 'UP':
             new_head = (head_x, head_y - 1)
         elif move == 'DOWN':
@@ -225,12 +225,12 @@ Strict Requirement: Respond with only one direction word (UP/DOWN/LEFT/RIGHT), n
         else:  # RIGHT
             new_head = (head_x + 1, head_y)
             
-        # 检查是否撞墙
+        # check if hit wall
         if (new_head[0] < 0 or new_head[0] >= game.width or
             new_head[1] < 0 or new_head[1] >= game.height):
             return False
             
-        # 检查是否撞到自己
+        # check if hit self
         if new_head in game.snake[:-1]:
             return False
             
@@ -241,7 +241,7 @@ Strict Requirement: Respond with only one direction word (UP/DOWN/LEFT/RIGHT), n
         for direction in ['UP', 'RIGHT', 'DOWN', 'LEFT']:
             if self._is_valid_move(game, direction):
                 return direction
-        return game.direction  # 如果没有有移动，保持当前方向
+        return game.direction  # if no valid move, keep current direction
     
     def initialize_logger(self, model_name):
         """initialize logger"""
@@ -249,7 +249,7 @@ Strict Requirement: Respond with only one direction word (UP/DOWN/LEFT/RIGHT), n
 
 class ClaudePlayer(AIPlayer):
     def __init__(self, api_key, model_name="claude-3-5-sonnet-20241022"):
-        super().__init__()  # 调用父类的初始化方法
+        super().__init__()  # call parent class initialization method
         self.client = Anthropic(api_key=api_key)
         self.model_name = model_name
         self.move_history = []
@@ -271,7 +271,7 @@ class ClaudePlayer(AIPlayer):
             move = response.content[0].text.strip().upper()
             is_valid = self._is_valid_move(game, move)
             
-            # 记录日志
+            # record log
             self.logger.log_move(game, move, board_state, is_valid)
             
             if not is_valid:
@@ -280,7 +280,7 @@ class ClaudePlayer(AIPlayer):
             return move
             
         except Exception as e:
-            # 记录错误日志
+            # record error log
             self.logger.log_move(game, str(e), board_state, False)
             raise e
     
@@ -292,21 +292,21 @@ class ClaudePlayer(AIPlayer):
             f"Length: {h['snake_length']}, "
             f"Head: {h['head_pos']}, "
             f"Food: {h['food_pos']})"
-            for h in self.move_history[-5:]  # 只显示最近5步
+            for h in self.move_history[-5:]  # only show recent 5 steps
         ])
 
 class GPTPlayer(AIPlayer):
     def __init__(self, api_key, model_name="gpt-4"):
-        super().__init__()  # 调用父类的初始化方法
+        super().__init__()  # call parent class initialization method
         self.client = OpenAI(api_key=api_key)
         self.model_name = model_name
         self.move_history = []
-        self.initialize_logger(model_name)  # 初始化日志记录器
+        self.initialize_logger(model_name)  # initialize logger
     
     def get_move(self, game):
         """get GPT's next move"""
         prompt = self._get_prompt(game)
-        board_state = self._format_board(game)  # 获取当前游戏板状态
+        board_state = self._format_board(game)  # get current game board state
         
         try:
             response = self.client.chat.completions.create(
@@ -333,31 +333,31 @@ class GPTPlayer(AIPlayer):
             raise e
     
     def _format_move_history(self):
-        """格式化移动历史"""
+       """format move history"""
         return "\n".join([
             f"Step {h['step']}: {h['move']} "
             f"(Score: {h['score']}, "
             f"Length: {h['snake_length']}, "
             f"Head: {h['head_pos']}, "
             f"Food: {h['food_pos']})"
-            for h in self.move_history[-5:]  # 只显示最近5步
+            for h in self.move_history[-5:]  # only show recent 5 steps
         ])
 
 class DeepSeekPlayer(AIPlayer):
     def __init__(self, api_key, model_name="deepseek-chat"):
-        super().__init__()  # 调用父类的初始化方法
+        super().__init__()  # call parent class initialization method
         self.client = OpenAI(
             api_key=api_key,
             base_url="https://api.deepseek.com"
         )
         self.model_name = model_name
         self.move_history = []
-        self.initialize_logger(model_name)  # 初始化日志记录器
+        self.initialize_logger(model_name)  # initialize logger
     
     def get_move(self, game):
         """get DeepSeek's next move"""
         prompt = self._get_prompt(game)
-        board_state = self._format_board(game)  # 获取当前游戏板状态
+        board_state = self._format_board(game)  # get current game board state
         
         try:
             response = self.client.chat.completions.create(
@@ -387,13 +387,13 @@ class DeepSeekPlayer(AIPlayer):
             raise e
     
     def _format_move_history(self):
-        """格化移动历史"""
+        """format move history"""
         return "\n".join([
-            f"步骤 {h['step']}: {h['move']} "
-            f"(分数: {h['score']}, "
-            f"长度: {h['snake_length']}, "
-            f"蛇头: {h['head_pos']}, "
-            f"食物: {h['food_pos']})"
+            f"Step {h['step']}: {h['move']} "
+            f"(Score: {h['score']}, "
+            f"Length: {h['snake_length']}, "
+            f"Head: {h['head_pos']}, "
+            f"Food: {h['food_pos']})"
             for h in self.move_history[-5:]  
         ])
 
@@ -454,7 +454,7 @@ def main():
     gpt_api_key = "<Your_OPENAI_API_KEY>"
     deepseek_api_key = "<Your_DeepSeek_API_KEY>"  # 
     
-    # 选择使用哪个模型
+    # select which model to use
     print(f"{Fore.YELLOW}Select AI Model:{Style.RESET_ALL}")
     print("1: Claude")
     print("2: GPT")
